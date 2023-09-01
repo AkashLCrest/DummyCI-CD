@@ -1,0 +1,49 @@
+name: Appium Tests
+
+on:
+  push:
+    branches:
+      - main  # Change this to your main branch name
+  pull_request:
+    branches:
+      - main  # Change this to your main branch name
+
+jobs:
+  test:
+    name: Run Appium Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.12.1'  # Adjust the version to match your project's requirement
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Start Android Emulator
+        run: |
+          echo "no" | android create avd --force -n test -t android-30 --abi google_apis/x86_64
+          emulator -avd test -no-window -no-boot-anim -no-snapshot -camera-back none -camera-front none &
+          android-wait-for-emulator
+
+      - name: Build and Install APK
+        run: |
+          npm run build:android  # Replace this with your actual build command
+          adb install -r ./android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Run Appium Tests
+        run: npm run test:appium  # Replace this with your actual test command
+
+      - name: Stop Emulator
+        run: adb emu kill
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: __test__/results/  # Update this path to match your test results
